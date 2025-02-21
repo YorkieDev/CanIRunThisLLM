@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Can I Run This LLM?</title>
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-color: #f9fafb;
+            --card-bg: #ffffff;
+            --text-color: #1f2937;
+            --border-color: #e5e7eb;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-color);
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .help-text {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+
+        .info-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #e5e7eb;
+            color: #6b7280;
+            font-size: 14px;
+            margin-left: 8px;
+            cursor: help;
+        }
+
+        .result {
+            display: none;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+            background-color: #f3f4f6;
+        }
+
+        .result.success {
+            background-color: #ecfdf5;
+            color: #065f46;
+        }
+
+        .result.error {
+            background-color: #fef2f2;
+            color: #991b1b;
+        }
+
+        .specs-guide {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .specs-guide h3 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        .specs-guide ul {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+
+        .specs-guide li {
+            margin-bottom: 0.5rem;
+        }
+
+        .note {
+            font-size: 0.9rem;
+            color: #6b7280;
+            font-style: italic;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Can I Run This LLM?</h1>
+            <p class="subtitle">Check if your system can handle running specific LLM models</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Model Information</div>
+            <div class="input-group">
+                <label for="repo">Hugging Face GGUF Model URL:</label>
+                <input type="text" id="repo" 
+                    placeholder="e.g., https://huggingface.co/TheBloke/Llama-2-7B-GGUF">
+                <p class="help-text">Enter a Hugging Face repository URL or a direct link to a GGUF file</p>
+            </div>
+            <button id="fetch-files">Fetch Model Files</button>
+        </div>
+
+        <div id="model-files" class="card" style="display: none;">
+            <div class="card-title">Available Models</div>
+            <div class="input-group">
+                <label for="model-select">Select a model file:</label>
+                <select id="model-select"></select>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">System Specifications</div>
+            <div class="input-group">
+                <label for="vram">GPU VRAM (GB):</label>
+                <input type="number" id="vram" min="0" step="0.1" placeholder="e.g., 8">
+                <p class="help-text">Enter your GPU's VRAM capacity in gigabytes</p>
+            </div>
+            <div class="input-group">
+                <label for="ram">System RAM (GB):</label>
+                <input type="number" id="ram" min="0" step="0.1" placeholder="e.g., 16">
+                <p class="help-text">Enter your system's RAM capacity in gigabytes</p>
+            </div>
+            <button id="check-run">Check Compatibility</button>
+        </div>
+
+        <div id="result" class="result"></div>
+
+        <div class="specs-guide">
+            <h3>How to Find Your Specifications</h3>
+            
+            <h4>For Windows:</h4>
+            <ul>
+                <li><strong>GPU VRAM:</strong>
+                    <ol>
+                        <li>Right-click on desktop → Select "Display settings"</li>
+                        <li>Scroll down → Click "Advanced display settings"</li>
+                        <li>Click "Display adapter properties"</li>
+                        <li>Look for "Dedicated Video Memory" in the adapter window</li>
+                    </ol>
+                </li>
+                <li><strong>System RAM:</strong>
+                    <ol>
+                        <li>Press Windows key + I to open Settings</li>
+                        <li>Click on "System" → "About"</li>
+                        <li>Look for "Installed RAM" under Device specifications</li>
+                    </ol>
+                </li>
+            </ul>
+
+            <h4>For macOS:</h4>
+            <ul>
+                <li><strong>GPU VRAM:</strong>
+                    <ol>
+                        <li>Click Apple menu → "About This Mac"</li>
+                        <li>Click "System Report..."</li>
+                        <li>Select "Graphics/Displays" in the sidebar</li>
+                        <li>Look for "VRAM" or "Total VRAM"</li>
+                    </ol>
+                </li>
+                <li><strong>System RAM:</strong>
+                    <ol>
+                        <li>Click Apple menu → "About This Mac"</li>
+                        <li>Memory information is displayed directly</li>
+                    </ol>
+                </li>
+            </ul>
+
+            <h4>For Linux:</h4>
+            <ul>
+                <li><strong>GPU VRAM:</strong>
+                    <ol>
+                        <li>Open terminal</li>
+                        <li>Run: <code>nvidia-smi</code> for NVIDIA GPUs</li>
+                        <li>Or run: <code>lspci -v | grep -A 12 VGA</code></li>
+                    </ol>
+                </li>
+                <li><strong>System RAM:</strong>
+                    <ol>
+                        <li>Open terminal</li>
+                        <li>Run: <code>free -h</code> or <code>cat /proc/meminfo</code></li>
+                    </ol>
+                </li>
+            </ul>
+
+            <p class="note">Note: These memory requirements are estimates. Actual requirements may vary depending on your specific setup and usage.</p>
+        </div>
+    </div>
+
+    <script>
+        // Function to format file sizes from bytes to human-readable units
+        function formatSize(bytes) {
+            if (bytes >= 1024 * 1024 * 1024) {
+                return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+            } else if (bytes >= 1024 * 1024) {
+                return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+            } else if (bytes >= 1024) {
+                return (bytes / 1024).toFixed(2) + ' KB';
+            } else {
+                return bytes + ' bytes';
+            }
+        }
+
+        // Function to parse input (file URL, repo URL, or repo ID)
+        function parseInput(input) {
+            // Remove any @ symbol from the start if present
+            input = input.replace(/^@/, '');
+            
+            // Specific file URL (e.g., .../blob/main/file.gguf)
+            const filePattern = /https:\/\/huggingface\.co\/([^\/]+\/[^\/]+)\/blob\/(?:main|master)\/([^\/]+\.gguf)/;
+            const fileMatch = input.match(filePattern);
+            if (fileMatch) {
+                return { type: 'file', repoId: fileMatch[1], filePath: fileMatch[2] };
+            }
+
+            // Repo URL (e.g., https://huggingface.co/username/repo-name)
+            const repoUrlPattern = /https:\/\/huggingface\.co\/([^\/]+\/[^\/]+)\/?$/;
+            const repoUrlMatch = input.match(repoUrlPattern);
+            if (repoUrlMatch) {
+                return { type: 'repo', repoId: repoUrlMatch[1] };
+            }
+
+            // Raw repo ID (e.g., username/repo-name)
+            if (/^[^\/]+\/[^\/]+$/.test(input)) {
+                return { type: 'repo', repoId: input };
+            }
+
+            return null;
+        }
+
+        // Function to get file size from LFS
+        async function getFileSizeFromLFS(repoId, filePath) {
+            // First try to get the file info directly
+            const apiUrl = `https://huggingface.co/${repoId}/resolve/main/${filePath}`;
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'HEAD',
+                    redirect: 'follow'
+                });
+                
+                if (response.ok) {
+                    // Get the content length from headers
+                    const size = response.headers.get('content-length');
+                    if (size) {
+                        return parseInt(size);
+                    }
+                }
+
+                // If direct method fails, try the LFS info method
+                const lfsUrl = `https://huggingface.co/${repoId}/raw/main/${filePath}`;
+                const lfsResponse = await fetch(lfsUrl, {
+                    method: 'HEAD',
+                    redirect: 'follow'
+                });
+
+                if (lfsResponse.ok) {
+                    const size = lfsResponse.headers.get('content-length');
+                    if (size) {
+                        return parseInt(size);
+                    }
+                }
+
+                // If both methods fail, try to get the Git LFS pointer
+                const pointerUrl = `https://huggingface.co/${repoId}/raw/main/${filePath}`;
+                const pointerResponse = await fetch(pointerUrl);
+                if (pointerResponse.ok) {
+                    const text = await pointerResponse.text();
+                    const sizeMatch = text.match(/size (\d+)/);
+                    if (sizeMatch) {
+                        return parseInt(sizeMatch[1]);
+                    }
+                }
+
+                throw new Error('Could not determine file size');
+            } catch (error) {
+                console.error('Error fetching LFS info:', error);
+                return null;
+            }
+        }
+
+        // Handle fetching model files
+        document.getElementById('fetch-files').addEventListener('click', async () => {
+            const input = document.getElementById('repo').value.trim();
+            const fetchButton = document.getElementById('fetch-files');
+            const parsed = parseInput(input);
+
+            if (!parsed) {
+                alert('Please enter a valid Hugging Face repo ID, repo URL, or GGUF file URL.');
+                return;
+            }
+
+            fetchButton.disabled = true;
+            fetchButton.textContent = 'Fetching...';
+
+            const select = document.getElementById('model-select');
+            select.innerHTML = '';
+
+            try {
+                let fileInfo;
+                if (parsed.type === 'file') {
+                    // For specific file URL, just get that file's info
+                    const size = await getFileSizeFromLFS(parsed.repoId, parsed.filePath);
+                    if (!size) {
+                        throw new Error('Could not fetch file information. The file might not exist, be private, or the repository might be unavailable.');
+                    }
+                    fileInfo = [{
+                        path: parsed.filePath,
+                        size: size
+                    }];
+                } else {
+                    // For repo URL/ID, first get the file list
+                    const listUrl = `https://huggingface.co/api/${parsed.repoId}/tree/main`;
+                    const response = await fetch(listUrl);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch repository data. Check the URL or repo ID.');
+                    }
+                    const data = await response.json();
+                    
+                    // Filter for .gguf files and get their sizes
+                    const ggufFiles = data.filter(item => item.path.endsWith('.gguf'));
+                    fileInfo = await Promise.all(
+                        ggufFiles.map(async item => {
+                            const size = await getFileSizeFromLFS(parsed.repoId, item.path);
+                            return {
+                                path: item.path,
+                                size: size
+                            };
+                        })
+                    );
+                }
+
+                // Filter out any files where we couldn't get the size
+                fileInfo = fileInfo.filter(file => file.size !== null);
+
+                if (fileInfo.length === 0) {
+                    throw new Error('No accessible .gguf files found in this repository.');
+                }
+
+                // Populate dropdown
+                fileInfo.forEach(file => {
+                    const option = document.createElement('option');
+                    option.value = file.size;
+                    option.text = `${file.path} (${formatSize(file.size)})`;
+                    select.appendChild(option);
+                });
+
+                document.getElementById('model-files').style.display = 'block';
+            } catch (error) {
+                alert(error.message);
+                console.error('Error:', error);
+            } finally {
+                fetchButton.disabled = false;
+                fetchButton.textContent = 'Fetch Model Files';
+            }
+        });
+
+        // Handle checking if the model can run
+        document.getElementById('check-run').addEventListener('click', () => {
+            const select = document.getElementById('model-select');
+            if (select.options.length === 0) {
+                alert('Please fetch model files first.');
+                return;
+            }
+
+            const modelSize = parseInt(select.value);
+            const vramInput = document.getElementById('vram').value;
+            const ramInput = document.getElementById('ram').value;
+
+            // Validate inputs
+            if (isNaN(vramInput) || isNaN(ramInput) || vramInput === '' || ramInput === '') {
+                alert('Please enter valid numbers for VRAM and RAM.');
+                return;
+            }
+
+            const vramGB = parseFloat(vramInput);
+            const ramGB = parseFloat(ramInput);
+            if (vramGB < 0 || ramGB < 0) {
+                alert('VRAM and RAM cannot be negative.');
+                return;
+            }
+
+            // Convert GB to bytes
+            const vramBytes = vramGB * 1024 * 1024 * 1024;
+            const ramBytes = ramGB * 1024 * 1024 * 1024;
+
+            // Check compatibility
+            let resultText = '';
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result'; // Reset classes
+
+            if (modelSize <= vramBytes && modelSize <= ramBytes) {
+                resultDiv.classList.add('success');
+                resultText = `
+                    <strong>Good news!</strong> Your system meets the requirements:
+                    <ul>
+                        <li>Model size: ${formatSize(modelSize)}</li>
+                        <li>Your GPU VRAM: ${vramGB.toFixed(1)} GB (${modelSize <= vramBytes ? '✓ Sufficient' : '✗ Insufficient'})</li>
+                        <li>Your System RAM: ${ramGB.toFixed(1)} GB (${modelSize <= ramBytes ? '✓ Sufficient' : '✗ Insufficient'})</li>
+                    </ul>
+                    <p>You can run this model on both GPU and CPU.</p>
+                `;
+            } else {
+                resultDiv.classList.add('error');
+                resultText = `
+                    <strong>System Check Results:</strong>
+                    <ul>
+                        <li>Model size: ${formatSize(modelSize)}</li>
+                        <li>Your GPU VRAM: ${vramGB.toFixed(1)} GB (${modelSize <= vramBytes ? '✓ Sufficient' : '✗ Insufficient'})</li>
+                        <li>Your System RAM: ${ramGB.toFixed(1)} GB (${modelSize <= ramBytes ? '✓ Sufficient' : '✗ Insufficient'})</li>
+                    </ul>
+                `;
+
+                if (modelSize > vramBytes && modelSize > ramBytes) {
+                    resultText += `<p>Your system doesn't have enough memory to run this model. You need at least ${formatSize(modelSize)} of VRAM or RAM.</p>`;
+                } else if (modelSize > vramBytes) {
+                    resultText += `<p>You can run this model on CPU only. For GPU acceleration, you need at least ${formatSize(modelSize)} of VRAM.</p>`;
+                } else {
+                    resultText += `<p>You need at least ${formatSize(modelSize)} of system RAM to run this model.</p>`;
+                }
+            }
+
+            resultDiv.innerHTML = resultText;
+        });
+    </script>
+</body>
+</html>
